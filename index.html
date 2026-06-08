@@ -302,20 +302,24 @@
             }
         }
 
-       // Função que ENVIA os dados para o Google Sheets usando o comando Fetch (POST)
+     // Função que ENVIA os dados para o Google Sheets usando o comando Fetch (POST)
 function salvarNoStorage() {
     localStorage.setItem('tarefaspri_dados', JSON.stringify(tarefas));
     const icon = document.getElementById('sync-icon');
     if(icon) icon.classList.remove('hidden');
     
-    // A "Ligação de Telefone" que envia as tarefas no corpo (body) da mensagem
+    // A "Ligação de Telefone" com blindagem no-cors para evitar bloqueios do navegador
     fetch(API_URL, {
         method: 'POST',
+        mode: 'no-cors', // <-- ESSA É A CHAVE MESTRA!
         body: JSON.stringify(tarefas),
         headers: { 'Content-Type': 'text/plain;charset=utf-8' } 
     })
     .then(() => { if(icon) icon.classList.add('hidden'); })
-    .catch(() => { if(icon) icon.classList.add('hidden'); });
+    .catch((erro) => { 
+        if(icon) icon.classList.add('hidden'); 
+        console.error("Erro ao enviar para o Google:", erro);
+    });
 }
 
 
