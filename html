@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TarefasPRI - Premium</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { colors: { primary: '#4F46E5', darkbg: '#0F172A', darkcard: '#1E293B', danger: '#EF4444', success: '#10B981', warning: '#F59E0B' } } }
+        }
+    </script>
+    <style>
+        body { transition: background-color 0.3s ease, color 0.3s ease; scroll-behavior: smooth; }
+        .task-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .task-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        .modal-enter { animation: fadeIn 0.3s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .mensagem-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(6px); display: flex; justify-content: center; align-items: center; z-index: 9999; animation: fadeIn 0.4s ease-out forwards; }
+        .mensagem-box { border-radius: 1.5rem; padding: 2rem; text-align: center; max-width: 90%; width: 500px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); animation: scaleUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        .texto-parabens { font-size: clamp(2rem, 5vw, 3rem); font-weight: 900; background: linear-gradient(to right, #4F46E5, #10B981); -webkit-background-clip: text; -webkit-text-fill-color: transparent; line-height: 1.2; }
+        @keyframes scaleUp { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 10px; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+        body.modo-foco header, body.modo-foco .col-esquerda, body.modo-foco .pesquisa-container { display: none !important; }
+        body.modo-foco main { display: block !important; max-width: 800px; margin: 0 auto; padding-top: 1rem; }
+        body.modo-foco .task-card { border: none !important; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important; margin-bottom: 0.5rem; }
+    </style>
+</head>
+<body class="bg-gray-50 text-slate-800 dark:bg-darkbg dark:text-slate-100 min-h-screen flex flex-col relative">
+
+    <div id="telaCarregamento" class="fixed inset-0 bg-gray-50 dark:bg-darkbg z-[1000] flex flex-col items-center justify-center transition-opacity duration-500">
+        <i class="fas fa-circle-notch fa-spin text-5xl text-primary mb-4"></i>
+        <p class="text-slate-500 font-bold text-sm md:text-base tracking-wide">Carregando seu espaço...</p>
+    </div>
+
+    <div id="toast-container" class="fixed top-5 left-1/2 transform -translate-x-1/2 z-[100] flex flex-col gap-2 pointer-events-none"></div>
+
+    <header class="bg-white dark:bg-darkcard shadow-sm sticky top-0 z-40 mb-6 border-b border-gray-200 dark:border-slate-800">
+        <div class="max-w-5xl mx-auto flex flex-wrap justify-between items-center p-4 gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-primary text-white p-2 rounded-lg shadow-md"><i class="fas fa-bolt text-lg md:text-xl"></i></div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-extrabold tracking-tight flex items-center gap-2">
+                        TarefasPRI
+                        <i id="sync-icon" class="fas fa-sync-alt text-xs text-slate-400 animate-spin" title="Sincronizando..."></i>
+                    </h1>
+                    <p class="text-[10px] md:text-xs text-slate-500 font-medium">Gestão Premium</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 md:gap-3 overflow-x-auto pb-1 md:pb-0">
+                <button onclick="abrirAnotacoes()" class="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition text-yellow-500" title="Bloco de Anotações">
+                    <i class="fas fa-sticky-note"></i>
+                </button>
+                <button onclick="abrirLembretes()" class="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-amber-500 transition" title="Changelog Dev">
+                    <i class="fas fa-code text-sm"></i>
+                </button>
+                <button onclick="toggleModoFoco()" class="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition text-primary" title="Modo Foco">
+                    <i class="fas fa-bullseye"></i>
+                </button>
+                <button onclick="sincronizarComNuvem(true)" class="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition text-success" title="Atualizar App">
+                    <i id="refresh-icon" class="fas fa-redo-alt text-sm"></i>
+                </button>
+                <button onclick="toggleTheme()" class="w-9 h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+                    <i id="theme-icon" class="fas fa-moon text-slate-600 dark:text-yellow-400"></i>
+                </button>
+                <button onclick="abrirModalRelatorio()" class="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 px-3 py-2 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition font-semibold text-xs md:text-sm whitespace-nowrap">
+                    <i class="fas fa-chart-pie text-primary"></i> <span class="hidden sm:inline">Analytics</span>
+                </button>
+                <button onclick="abrirModalHistorico()" class="flex items-center gap-2 bg-primary text-white px-3 py-2 rounded-xl shadow-md hover:bg-indigo-700 transition font-semibold text-xs md:text-sm whitespace-nowrap">
+                    <i class="fas fa-calendar-alt"></i> <span class="hidden sm:inline">Histórico</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto flex flex-col lg:grid lg:grid-cols-3 gap-6 px-4 flex-1 w-full">
+        <div class="col-esquerda lg:col-span-1 space-y-6 order-2 lg:order-1">
+            <div class="bg-white dark:bg-darkcard p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 relative">
+                <h2 class="text-base md:text-lg font-bold mb-4 text-center">Progresso do Dia</h2>
+                <div class="relative w-40 h-40 md:w-48 md:h-48 mx-auto"><canvas id="graficoPizza"></canvas></div>
+                <div class="flex justify-center flex-wrap gap-3 mt-5 text-[10px] md:text-xs font-semibold">
+                    <div class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-success"></span> Feitas</div>
+                    <div class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-600"></span> Pend.</div>
+                    <div class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-danger"></span> N. Feitas</div>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-darkcard p-5 md:p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800">
+                <h2 class="text-base md:text-lg font-bold mb-4 flex items-center gap-2"><i class="fas fa-plus-circle text-primary"></i> Nova Tarefa</h2>
+                <form id="formTarefa" onsubmit="salvarTarefa(event)" class="space-y-3 md:space-y-4">
+                    <input type="hidden" id="taskId">
+                    <div>
+                        <label class="text-xs md:text-sm font-semibold text-slate-500">Descrição</label>
+                        <input type="text" id="taskName" required class="w-full mt-1 p-2.5 border border-slate-300 rounded-xl bg-slate-50 dark:bg-slate-900 dark:border-slate-700 focus:ring-2 focus:ring-primary outline-none transition text-sm">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 md:gap-3">
+                        <div>
+                            <label class="text-xs md:text-sm font-semibold text-slate-500">Data</label>
+                            <input type="date" id="taskDate" required class="w-full mt-1 p-2.5 border border-slate-300 rounded-xl bg-slate-50 dark:bg-slate-900 dark:border-slate-700 focus:ring-2 focus:ring-primary outline-none transition text-sm text-center">
+                        </div>
+                        <div>
+                            <label class="text-xs md:text-sm font-semibold text-slate-500">Horário</label>
+                            <input type="time" id="taskTime" required class="w-full mt-1 p-2.5 border border-slate-300 rounded-xl bg-slate-50 dark:bg-slate-900 dark:border-slate-700 focus:ring-2 focus:ring-primary outline-none transition text-sm text-center">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 md:gap-3">
+                        <div>
+                            <label class="text-xs md:text-sm font-semibold text-slate-500">Prioridade</label>
+                            <select id="taskPriority" class="w-full mt-1 p-2.5 border border-slate-300 rounded-xl bg-slate-50 dark:bg-slate-900 dark:border-slate-700 focus:ring-2 focus:ring-primary outline-none transition text-sm">
+                                <option value="Baixa">Baixa</option><option value="Normal" selected>Normal</option><option value="Alta">Alta</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs md:text-sm font-semibold text-slate-500">Tipo</label>
+                            <select id="taskRecurring" class="w-full mt-1 p-2.5 border border-slate-300 rounded-xl bg-slate-50 dark:bg-slate-900 dark:border-slate-700 focus:ring-2 focus:ring-primary outline-none transition text-sm">
+                                <option value="false" selected>Única</option><option value="true">Recorrente (Diária)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-xs md:text-sm font-semibold text-slate-500">Categoria</label>
+                        <select id="taskCategory" class="w-full mt-1 p-2.5 border border-slate-300 rounded-xl bg-slate-50 dark:bg-slate-900 dark:border-slate-700 focus:ring-2 focus:ring-primary outline-none transition text-sm">
+                            <option value="Sáude">Sáude</option><option value="Pessoal">Pessoal</option><option value="Espiritualidade">Espiritualidade</option><option value="Casa">Casa</option><option value="Família">Família</option><option value="Pripel">Pripel</option><option value="Outros" selected>Outros</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="w-full bg-primary text-white p-2.5 rounded-xl shadow hover:bg-indigo-700 transition font-bold text-sm mt-2">Salvar Tarefa</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="lg:col-span-2 flex flex-col h-full order-1 lg:order-2">
+            <div class="pesquisa-container flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3 mb-5">
+                <div>
+                    <h2 class="text-xl md:text-2xl font-black">Agenda de Hoje</h2>
+                    <p id="dataAtualLabel" class="text-xs md:text-sm text-slate-500 font-medium"></p>
+                </div>
+                <input type="text" id="searchInput" onkeyup="renderizarTarefas()" placeholder="Pesquisar pendentes..." class="p-2 px-4 border border-slate-300 rounded-full text-sm bg-white dark:bg-slate-800 dark:border-slate-700 outline-none focus:ring-2 focus:ring-primary w-full sm:w-64 transition">
+            </div>
+            <div id="listaTarefas" class="space-y-3 md:space-y-4 flex-1"></div>
+        </div>
+    </main>
+
+    <footer class="text-center py-6 text-slate-400 text-xs mt-10 border-t border-slate-200 dark:border-slate-800 font-medium">
+        Since @2026 - Versão 1.2 (Segurança Aprimorada) - Build 08.06.26
+    </footer>
+
+    <button id="btnSairFoco" onclick="toggleModoFoco()" class="hidden fixed bottom-6 right-6 bg-primary text-white px-6 py-3 rounded-full shadow-2xl font-bold z-50 hover:bg-indigo-700 transition flex items-center gap-2">
+        <i class="fas fa-compress"></i> Sair do Foco
+    </button>
+
+    <div id="modalAnotacoes" class="fixed inset-0 bg-slate-900 bg-opacity-70 flex items-center justify-center hidden z-50 p-4 backdrop-blur-sm modal-enter">
+        <div class="bg-[#FFF9C4] dark:bg-[#423C1E] p-6 rounded-2xl shadow-xl w-full max-w-lg text-slate-800 dark:text-slate-200 relative flex flex-col h-[70vh]">
+            <button onclick="fecharAnotacoes()" class="absolute top-4 right-4 text-slate-500 hover:text-slate-800 dark:hover:text-white text-xl"><i class="fas fa-times"></i></button>
+            <h2 class="text-lg font-bold mb-4 flex items-center gap-2 text-yellow-600 dark:text-yellow-500"><i class="fas fa-sticky-note"></i> Bloco de Anotações</h2>
+            <textarea id="textoAnotacoes" onkeyup="salvarAnotacoes()" placeholder="Digite suas anotações livres aqui..." class="flex-1 w-full p-4 bg-transparent border-none outline-none resize-none text-sm md:text-base leading-relaxed placeholder-slate-400"></textarea>
+            <div class="text-right text-[10px] text-slate-400 mt-2">Salvo automaticamente no dispositivo.</div>
+        </div>
+    </div>
+
+    <div id="modalNaoFeita" class="fixed inset-0 bg-slate-900 bg-opacity-70 backdrop-blur-sm flex justify-center items-center hidden z-50 p-4">
+        <div class="bg-white dark:bg-darkcard rounded-2xl w-full max-w-sm md:max-w-md p-5 md:p-6 relative modal-enter shadow-2xl">
+            <h3 class="text-lg md:text-xl font-bold text-danger mb-2"><i class="fas fa-times-circle mr-2"></i>Tarefa Não Realizada</h3>
+            <p class="text-xs md:text-sm text-slate-500 mb-4 truncate" id="naoFeitaTaskName"></p>
+            <label class="block text-xs md:text-sm font-semibold mb-1">Justificativa:</label>
+            <textarea id="justificativaInput" rows="3" class="w-full p-2 border border-slate-300 rounded-xl bg-slate-50 dark:bg-slate-900 dark:border-slate-700 focus:ring-2 focus:ring-danger outline-none mb-4 resize-none text-sm"></textarea>
+            <div class="bg-slate-50 dark:bg-slate-800 p-3 md:p-4 rounded-xl mb-5">
+                <p class="text-xs md:text-sm font-semibold mb-2">Reagendar para amanhã?</p>
+                <div class="flex gap-4 text-sm">
+                    <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="reagendar" value="sim" checked class="accent-primary"> Sim</label>
+                    <label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="reagendar" value="nao" class="accent-primary"> Não</label>
+                </div>
+            </div>
+            <div class="flex gap-2 md:gap-3">
+                <button onclick="fecharModalNaoFeita()" class="flex-1 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 py-2 rounded-xl text-sm font-semibold hover:bg-slate-300 transition">Cancelar</button>
+                <button onclick="confirmarNaoFeita()" class="flex-1 bg-danger text-white py-2 rounded-xl text-sm font-semibold shadow hover:bg-red-600 transition">Confirmar</button>
+            </div>
+            <input type="hidden" id="naoFeitaTaskId">
+        </div>
+    </div>
+    
+    <div id="modalLembretes" class="fixed inset-0 bg-slate-900 bg-opacity-70 flex items-center justify-center hidden z-50 p-4 backdrop-blur-sm modal-enter">
+        <div class="bg-slate-100 dark:bg-slate-800 p-6 rounded-2xl shadow-xl w-full max-w-md relative border border-slate-200 dark:border-slate-700">
+            <button onclick="fecharLembretes()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-800 dark:hover:text-white text-xl"><i class="fas fa-times"></i></button>
+            <h2 class="text-lg font-bold mb-4 flex items-center gap-2 text-primary"><i class="fas fa-code"></i> Changelog Dev (v1.2)</h2>
+            <ul class="list-disc ml-5 space-y-2 text-sm font-medium text-slate-700 dark:text-slate-300">
+                <li>[SEG] Sanitização XSS implementada nos campos de texto.</li>
+                <li>[UI] Adicionado Overlay de carregamento elegante na abertura.</li>
+                <li>[FIX] Corrigida a lógica persistente das datas.</li>
+            </ul>
+        </div>
+    </div>
+
+    <div id="containerAnimacao" class="hidden"></div>
+    
+    <div id="modalRelatorio" class="fixed inset-0 bg-slate-900 bg-opacity-80 backdrop-blur-sm flex justify-center items-center hidden z-[60] p-2 sm:p-4">
+        <div class="bg-slate-50 dark:bg-slate-900 rounded-3xl w-full max-w-5xl h-[95vh] flex flex-col relative modal-enter overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-700">
+            <div class="flex justify-between items-center p-4 md:p-6 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-darkcard shrink-0">
+                <h2 class="text-xl md:text-2xl font-black flex items-center gap-2"><i class="fas fa-chart-line text-primary"></i> Analytics (Histórico Geral)</h2>
+                <button onclick="fecharModalRelatorio()" class="text-slate-400 hover:text-danger text-2xl transition"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 md:space-y-8">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+                    <div class="bg-white dark:bg-darkcard p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800"><p class="text-[10px] sm:text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Total Registrado</p><p class="text-2xl sm:text-3xl font-black text-slate-800 dark:text-white" id="repTotal">0</p></div>
+                    <div class="bg-white dark:bg-darkcard p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800"><p class="text-[10px] sm:text-xs font-bold text-success mb-1 uppercase tracking-wider">Concluídas</p><p class="text-2xl sm:text-3xl font-black text-success" id="repConcluidas">0</p></div>
+                    <div class="bg-white dark:bg-darkcard p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800"><p class="text-[10px] sm:text-xs font-bold text-danger mb-1 uppercase tracking-wider">Não Feitas</p><p class="text-2xl sm:text-3xl font-black text-danger" id="repNaoFeitas">0</p></div>
+                    <div class="bg-white dark:bg-darkcard p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800"><p class="text-[10px] sm:text-xs font-bold text-primary mb-1 uppercase tracking-wider">Taxa de Sucesso</p><p class="text-2xl sm:text-3xl font-black text-primary" id="repTaxa">0%</p></div>
+                </div>
+                
+                <div class="w-full">
+                    <h3 class="font-bold text-lg md:text-xl mb-4 flex items-center gap-2"><i class="fas fa-layer-group text-primary"></i> Desempenho por Categoria</h3>
+                    <div id="containerCategoriasUnico" class="bg-white dark:bg-darkcard p-5 md:p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 w-full space-y-6">
+                        </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalHistorico" class="fixed inset-0 bg-slate-900 bg-opacity-80 backdrop-blur-sm flex justify-center items-center hidden z-[60] p-2 sm:p-4">
+        <div class="bg-slate-50 dark:bg-slate-900 rounded-3xl w-full max-w-4xl h-[90vh] flex flex-col relative modal-enter shadow-2xl border border-slate-200 dark:border-slate-700">
+            <div class="flex justify-between items-center p-4 md:p-6 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-darkcard shrink-0">
+                <h2 class="text-xl md:text-2xl font-black"><i class="fas fa-history text-primary mr-2"></i>Histórico</h2>
+                <button onclick="fecharModalHistorico()" class="text-slate-400 hover:text-danger text-2xl transition"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-3 md:p-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-darkcard flex flex-wrap gap-3 shrink-0">
+                <input type="date" id="filtroDataHist" onchange="renderizarHistorico()" class="flex-1 min-w-[140px] p-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700 outline-none focus:ring-2 focus:ring-primary text-sm">
+                <select id="filtroStatusHist" onchange="renderizarHistorico()" class="flex-1 min-w-[140px] p-2 border rounded-lg dark:bg-slate-800 dark:border-slate-700 outline-none focus:ring-2 focus:ring-primary text-sm">
+                    <option value="Todos">Todos os Status</option><option value="Concluída">Concluídas</option><option value="Não Feita">Não Feitas</option><option value="Pendente">Pendentes</option>
+                </select>
+            </div>
+            <div class="flex-1 overflow-y-auto p-4 md:p-6"><div id="listaHistoricoTotal" class="space-y-3"></div></div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // BLOCO: VARIÁVEIS GLOBAIS E INICIALIZAÇÃO
+        // ==========================================
+        
+        let tarefas = JSON.parse(localStorage.getItem('tarefaspri_dados')) || [];
+        let chartPizza, chartGeralPizza;
+        let modoFocoAtivo = false;
+        let isSyncing = false;
+
+        window.onload = () => {
+            const today = new Date();
+            document.getElementById('dataAtualLabel').innerText = today.toLocaleDateString('pt-BR', { weekday: 'short', month: 'short', day: 'numeric' });
+            
+            const y = today.getFullYear();
+            const m = String(today.getMonth() + 1).padStart(2, '0');
+            const d = String(today.getDate()).padStart(2, '0');
+            document.getElementById('taskDate').value = `${y}-${m}-${d}`;
+            
+            aplicarTemaSalvo();
+            inicializarGraficoPizza();
+            renderizarTarefas(); 
+            sincronizarComNuvem(false); 
+        };
+
+        // ==========================================
+        // BLOCO: SEGURANÇA E HIGIENIZAÇÃO DE DADOS
+        // ==========================================
+        
+        // Função crucial de segurança: Transforma códigos HTML maliciosos em texto seguro
+        // Previne ataques XSS (Cross-Site Scripting)
+        function escapeHTML(str) {
+            if (!str) return '';
+            return str.replace(/[&<>'"]/g, function(tag) {
+                const charsToReplace = { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' };
+                return charsToReplace[tag] || tag;
+            });
+        }
+
+        // ==========================================
+        // BLOCO: MOTOR DE DATA INTELIGENTE
+        // ==========================================
+        
+        function obterDataDeHojeFormatada() {
+            const now = new Date();
+            const d = String(now.getDate()).padStart(2, '0');
+            const m = String(now.getMonth() + 1).padStart(2, '0');
+            const y = now.getFullYear();
+            return `${d}/${m}/${y}`;
+        }
+
+        function isTarefaDeHoje(t) {
+            const hojeStr = obterDataDeHojeFormatada();
+            if (t.data === hojeStr) return true;
+            if (t.recorrente && t.status === 'Pendente') {
+                const [d, m, y] = t.data.split('/');
+                const taskTime = new Date(y, m - 1, d).getTime();
+                const now = new Date();
+                const hojeTime = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+                return taskTime <= hojeTime;
+            }
+            return false;
+        }
+
+        // ==========================================
+        // BLOCO: GERENCIAMENTO E SINCRONIZAÇÃO
+        // ==========================================
+        
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            let bgClass = 'bg-primary'; let iconClass = 'fa-info-circle';
+            if (type === 'success') { bgClass = 'bg-success'; iconClass = 'fa-check-circle'; }
+            else if (type === 'error') { bgClass = 'bg-danger'; iconClass = 'fa-exclamation-triangle'; }
+            else if (type === 'loading') { bgClass = 'bg-primary'; iconClass = 'fa-sync-alt fa-spin'; }
+            toast.className = `${bgClass} text-white px-4 py-3 rounded-xl shadow-xl text-sm font-bold transition-all duration-300 opacity-0 transform -translate-y-5 flex items-center gap-3`;
+            toast.innerHTML = `<i class="fas ${iconClass}"></i> <span>${escapeHTML(message)}</span>`;
+            container.appendChild(toast);
+            requestAnimationFrame(() => toast.classList.remove('opacity-0', '-translate-y-5'));
+            if (type !== 'loading') { setTimeout(() => { toast.classList.add('opacity-0', '-translate-y-5'); setTimeout(() => toast.remove(), 300); }, 3000); }
+            return toast; 
+        }
+
+        let toastLoadingRef = null;
+        
+        function sincronizarComNuvem(isManual = false) {
+            if (isSyncing) return;
+            isSyncing = true;
+            const iconHeader = document.getElementById('sync-icon');
+            const iconRefresh = document.getElementById('refresh-icon');
+            if (iconHeader) iconHeader.classList.remove('hidden');
+            if (iconRefresh && isManual) iconRefresh.classList.add('fa-spin');
+            if (isManual) toastLoadingRef = showToast('Atualizando dados da nuvem...', 'loading');
+
+            if (typeof google !== 'undefined') {
+                google.script.run.withSuccessHandler((r) => finalizarSincronizacao(true, isManual, r))
+                                 .withFailureHandler((e) => finalizarSincronizacao(false, isManual, e)).carregarDadosDoSheets();
+            } else {
+                setTimeout(() => finalizarSincronizacao(true, isManual, "[]"), 1000);
+            }
+        }
+
+        function finalizarSincronizacao(sucesso, isManual, resposta) {
+            isSyncing = false;
+            const iconHeader = document.getElementById('sync-icon');
+            const iconRefresh = document.getElementById('refresh-icon');
+            if (iconHeader) iconHeader.classList.add('hidden');
+            if (iconRefresh && isManual) iconRefresh.classList.remove('fa-spin');
+            if (toastLoadingRef) { toastLoadingRef.classList.add('opacity-0', '-translate-y-5'); setTimeout(() => toastLoadingRef.remove(), 300); toastLoadingRef = null; }
+
+            // Esconde a tela de carregamento inicial (Visual UX)
+            const telaCarregamento = document.getElementById('telaCarregamento');
+            if (telaCarregamento) {
+                telaCarregamento.classList.add('opacity-0');
+                setTimeout(() => telaCarregamento.classList.add('hidden'), 500);
+            }
+
+            if (sucesso) {
+                try {
+                    const dadosPlanilha = JSON.parse(resposta);
+                    if (!dadosPlanilha.erro && Array.isArray(dadosPlanilha)) {
+                        if(dadosPlanilha.length > 0) tarefas = dadosPlanilha;
+                        localStorage.setItem('tarefaspri_dados', JSON.stringify(tarefas));
+                        renderizarTarefas(); atualizarGraficoPizza();
+                        if (!document.getElementById('modalRelatorio').classList.contains('hidden')) gerarDadosRelatorio();
+                        if (!document.getElementById('modalHistorico').classList.contains('hidden')) renderizarHistorico();
+                        if (isManual) showToast('Aplicativo atualizado!', 'success');
+                    }
+                } catch(e) {}
+            }
+        }
+
+        function salvarNoStorage() {
+            localStorage.setItem('tarefaspri_dados', JSON.stringify(tarefas));
+            const icon = document.getElementById('sync-icon');
+            if(icon) icon.classList.remove('hidden');
+            if (typeof google !== 'undefined') { 
+                google.script.run.withSuccessHandler(() => { if(icon) icon.classList.add('hidden'); }).salvarBackupNoSheets(JSON.stringify(tarefas)); 
+            }
+        }
+
+        // ==========================================
+        // BLOCO: LÓGICA DE TAREFAS (CRUD)
+        // ==========================================
+        
+        function salvarTarefa(event) {
+            event.preventDefault();
+            const id = document.getElementById('taskId').value;
+            const nome = document.getElementById('taskName').value;
+            const hora = document.getElementById('taskTime').value;
+            const prioridade = document.getElementById('taskPriority').value;
+            const categoria = document.getElementById('taskCategory').value;
+            const recorrente = document.getElementById('taskRecurring').value === 'true';
+            
+            const dateInput = document.getElementById('taskDate').value;
+            const [y, m, d] = dateInput.split('-');
+            const dataFmt = `${d}/${m}/${y}`;
+
+            if (id) {
+                const index = tarefas.findIndex(t => String(t.id) === String(id));
+                if(index > -1) tarefas[index] = { ...tarefas[index], nome, hora, prioridade, categoria, data: dataFmt, recorrente };
+            } else {
+                tarefas.push({ id: Date.now().toString(), nome, hora, prioridade, categoria, status: 'Pendente', data: dataFmt, recorrente });
+            }
+            document.getElementById('formTarefa').reset();
+            document.getElementById('taskId').value = '';
+            document.getElementById('taskDate').value = `${y}-${m}-${d}`; 
+            
+            salvarNoStorage(); renderizarTarefas(); showToast('Tarefa salva!', 'success');
+        }
+
+        function alternarConclusao(id) {
+            const index = tarefas.findIndex(t => String(t.id) === String(id));
+            if(index > -1) {
+                if (tarefas[index].recorrente) {
+                    tarefas.push({ ...tarefas[index], id: Date.now().toString() + "_log", status: 'Concluída', recorrente: false, data: obterDataDeHojeFormatada() });
+                    const now = new Date();
+                    now.setDate(now.getDate() + 1);
+                    const d = String(now.getDate()).padStart(2, '0');
+                    const m = String(now.getMonth() + 1).padStart(2, '0');
+                    const y = now.getFullYear();
+                    tarefas[index].data = `${d}/${m}/${y}`;
+                } else {
+                    tarefas[index].status = 'Concluída';
+                }
+                salvarNoStorage(); renderizarTarefas(); verificarFimDoDia(); 
+            }
+        }
+
+        function editarTarefa(id) {
+            const t = tarefas.find(t => String(t.id) === String(id));
+            if(t && t.status === 'Pendente') { 
+                document.getElementById('taskId').value = t.id;
+                document.getElementById('taskName').value = t.nome;
+                document.getElementById('taskTime').value = t.hora;
+                document.getElementById('taskPriority').value = t.prioridade;
+                document.getElementById('taskCategory').value = t.categoria || 'Outros';
+                document.getElementById('taskRecurring').value = t.recorrente ? 'true' : 'false';
+                
+                const [d, m, y] = t.data.split('/');
+                document.getElementById('taskDate').value = `${y}-${m}-${d}`;
+                
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                if(modoFocoAtivo) toggleModoFoco(); 
+            }
+        }
+
+        function excluirTarefa(id) {
+            if(confirm("Deseja excluir esta tarefa?")) {
+                tarefas = tarefas.filter(t => String(t.id) !== String(id));
+                salvarNoStorage(); renderizarTarefas();
+                if(!document.getElementById('modalHistorico').classList.contains('hidden')) renderizarHistorico();
+                showToast('Tarefa excluída.', 'success');
+            }
+        }
+
+        function confirmarNaoFeita() {
+            const id = document.getElementById('naoFeitaTaskId').value;
+            const justificativa = document.getElementById('justificativaInput').value.trim();
+            const reagendar = document.querySelector('input[name="reagendar"]:checked').value === 'sim';
+
+            if(!justificativa) return alert("Justificativa obrigatória.");
+            const index = tarefas.findIndex(t => String(t.id) === String(id));
+            
+            if(index > -1) {
+                if (tarefas[index].recorrente) {
+                    tarefas.push({ ...tarefas[index], id: Date.now().toString() + "_log", status: 'Não Feita', justificativa, recorrente: false, data: obterDataDeHojeFormatada() });
+                    const now = new Date();
+                    now.setDate(now.getDate() + 1);
+                    const d = String(now.getDate()).padStart(2, '0');
+                    const m = String(now.getMonth() + 1).padStart(2, '0');
+                    const y = now.getFullYear();
+                    tarefas[index].data = `${d}/${m}/${y}`;
+                } else {
+                    tarefas[index].status = 'Não Feita';
+                    tarefas[index].justificativa = justificativa;
+                    if(reagendar) {
+                        const now = new Date();
+                        now.setDate(now.getDate() + 1);
+                        const d = String(now.getDate()).padStart(2, '0');
+                        const m = String(now.getMonth() + 1).padStart(2, '0');
+                        const y = now.getFullYear();
+                        tarefas.push({ ...tarefas[index], id: Date.now().toString(), status: 'Pendente', data: `${d}/${m}/${y}`, justificativa: '' });
+                    }
+                }
+                salvarNoStorage(); renderizarTarefas(); fecharModalNaoFeita(); verificarFimDoDia(); 
+            }
+        }
+
+        // ==========================================
+        // BLOCO: INTERFACE VISUAL E RENDERS
+        // ==========================================
+        
+        function renderizarTarefas() {
+            const lista = document.getElementById('listaTarefas'); lista.innerHTML = '';
+            const termo = document.getElementById('searchInput').value.toLowerCase();
+            
+            const tHoje = tarefas.filter(t => t.status === 'Pendente' && isTarefaDeHoje(t) && t.nome.toLowerCase().includes(termo)).sort((a, b) => a.hora.localeCompare(b.hora));
+            const totalH = tarefas.filter(t => isTarefaDeHoje(t)).length;
+
+            if (totalH === 0) {
+                lista.innerHTML = `<div class="flex flex-col items-center justify-center h-40 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 text-center p-4"><i class="fas fa-coffee text-3xl text-slate-300 dark:text-slate-600 mb-2"></i><p class="text-slate-500 font-medium text-sm">Nenhuma tarefa para hoje.</p></div>`;
+            } else if (tHoje.length === 0 && totalH > 0) {
+                lista.innerHTML = `<div class="flex flex-col items-center justify-center h-40 bg-emerald-50 dark:bg-emerald-900/10 rounded-2xl border-2 border-dashed border-emerald-200 dark:border-emerald-800/50 text-center p-4"><i class="fas fa-check-circle text-3xl text-success mb-2 opacity-80"></i><p class="text-emerald-700 dark:text-emerald-400 font-bold text-sm">Agenda Limpa!</p></div>`;
+            } else {
+                tHoje.forEach(t => {
+                    const prioColor = t.prioridade === 'Alta' ? 'text-danger bg-red-100 dark:bg-red-900/30' : (t.prioridade === 'Baixa' ? 'text-slate-600 bg-slate-100 dark:bg-slate-800' : 'text-primary bg-indigo-100 dark:bg-indigo-900/30');
+                    const badgeRec = t.recorrente ? `<i class="fas fa-sync-alt text-primary ml-1" title="Recorrente"></i>` : '';
+                    
+                    // Aplicando a sanitização no nome da tarefa antes de injetar na tela
+                    const nomeSeguro = escapeHTML(t.nome);
+                    
+                    lista.innerHTML += `
+                        <div class="task-card flex flex-col sm:flex-row sm:items-center justify-between p-3.5 md:p-4 rounded-xl border shadow-sm bg-white dark:bg-darkcard border-slate-200 dark:border-slate-700 gap-3">
+                            <div class="flex items-start gap-3 flex-1 overflow-hidden">
+                                <button onclick="alternarConclusao('${t.id}')" class="shrink-0 w-6 h-6 md:w-7 md:h-7 rounded-full border-2 border-slate-300 dark:border-slate-600 flex justify-center items-center hover:border-success transition mt-0.5"></button>
+                                <div class="flex-1 min-w-0">
+                                    <h3 class="text-sm md:text-base font-bold text-slate-800 dark:text-slate-100 break-words leading-tight">${nomeSeguro} ${badgeRec}</h3>
+                                    <div class="flex flex-wrap items-center gap-1.5 md:gap-2 mt-1.5">
+                                        <span class="text-[10px] md:text-xs font-semibold text-slate-500 flex items-center"><i class="far fa-clock mr-1"></i>${t.hora}</span>
+                                        <span class="text-[9px] md:text-[10px] px-1.5 md:px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${prioColor}">${t.prioridade}</span>
+                                        <span class="text-[9px] md:text-[10px] px-1.5 md:px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 truncate max-w-[80px] sm:max-w-[120px]"><i class="fas fa-folder mr-1 text-slate-400"></i>${t.categoria || 'Outros'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex gap-1 sm:gap-2 sm:ml-2 justify-end shrink-0">
+                                <button onclick="abrirModalNaoFeita('${t.id}', '${nomeSeguro.replace(/'/g, "\\'")}')" class="w-7 h-7 md:w-8 md:h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-danger hover:bg-red-100 transition flex items-center justify-center"><i class="fas fa-times text-xs md:text-sm"></i></button>
+                                <button onclick="editarTarefa('${t.id}')" class="w-7 h-7 md:w-8 md:h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-primary transition flex items-center justify-center"><i class="fas fa-pen text-xs"></i></button>
+                                <button onclick="excluirTarefa('${t.id}')" class="w-7 h-7 md:w-8 md:h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-danger transition flex items-center justify-center"><i class="fas fa-trash text-xs"></i></button>
+                            </div>
+                        </div>`;
+                });
+            }
+            atualizarGraficoPizza();
+        }
+
+        // ==========================================
+        // BLOCO: REGRAS DE CELEBRAÇÃO E UI SECUNDÁRIA
+        // ==========================================
+        
+        function verificarFimDoDia() {
+            const tHoje = tarefas.filter(t => isTarefaDeHoje(t));
+            if (tHoje.length === 0) return;
+            const pend = tHoje.filter(t => t.status === 'Pendente').length;
+            const conc = tHoje.filter(t => t.status === 'Concluída').length;
+            const nFei = tHoje.filter(t => t.status === 'Não Feita').length;
+
+            if (pend === 0) {
+                if (nFei === 0 && conc > 0) dispararCelebracao(); 
+                else if (nFei > 0) dispararReflexao(); 
+            }
+        }
+        
+        function dispararCelebracao() {
+            var end = Date.now() + 3000;
+            (function frame() {
+                confetti({ particleCount: 4, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#4F46E5', '#10B981'] });
+                confetti({ particleCount: 4, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#4F46E5', '#10B981'] });
+                if (Date.now() < end) requestAnimationFrame(frame);
+            }());
+            const c = document.getElementById('containerAnimacao');
+            c.innerHTML = `<div class="mensagem-overlay"><div class="mensagem-box bg-white dark:bg-darkcard border border-slate-200 dark:border-slate-700"><div class="texto-parabens mb-2">PARABÉNS</div><p class="text-lg md:text-xl text-slate-600 dark:text-slate-300 font-medium">Missão cumprida!</p></div></div>`;
+            c.classList.remove('hidden'); setTimeout(() => { c.classList.add('hidden'); c.innerHTML=''; }, 4000);
+        }
+        
+        function dispararReflexao() {
+            const c = document.getElementById('containerAnimacao');
+            c.innerHTML = `<div class="mensagem-overlay"><div class="mensagem-box bg-white dark:bg-darkcard border border-slate-200 dark:border-slate-700"><i class="fas fa-leaf text-4xl text-primary mb-3 opacity-80"></i><h2 class="text-xl font-bold mb-2">Fim do expediente</h2><p class="text-sm md:text-base text-slate-600 dark:text-slate-300">Nem tudo saiu como planejado hoje, mas amanhã é uma nova chance.</p></div></div>`;
+            c.classList.remove('hidden'); setTimeout(() => { c.classList.add('hidden'); c.innerHTML=''; }, 5000);
+        }
+
+        function abrirModalNaoFeita(id, nome) {
+            document.getElementById('naoFeitaTaskId').value = id;
+            document.getElementById('naoFeitaTaskName').innerText = nome;
+            document.getElementById('justificativaInput').value = '';
+            document.getElementById('modalNaoFeita').classList.remove('hidden');
+        }
+        
+        function fecharModalNaoFeita() { document.getElementById('modalNaoFeita').classList.add('hidden'); }
+
+        function abrirAnotacoes() { 
+            document.getElementById('textoAnotacoes').value = localStorage.getItem('tarefaspri_notas') || '';
+            document.getElementById('modalAnotacoes').classList.remove('hidden'); 
+        }
+        function fecharAnotacoes() { 
+            localStorage.setItem('tarefaspri_notas', document.getElementById('textoAnotacoes').value);
+            document.getElementById('modalAnotacoes').classList.add('hidden'); 
+        }
+        function salvarAnotacoes() { localStorage.setItem('tarefaspri_notas', document.getElementById('textoAnotacoes').value); }
+
+        function toggleModoFoco() {
+            modoFocoAtivo = !modoFocoAtivo;
+            const btnSair = document.getElementById('btnSairFoco');
+            if(modoFocoAtivo) { document.body.classList.add('modo-foco'); btnSair.classList.remove('hidden'); } 
+            else { document.body.classList.remove('modo-foco'); btnSair.classList.add('hidden'); }
+        }
+
+        function abrirLembretes() { document.getElementById('modalLembretes').classList.remove('hidden'); }
+        function fecharLembretes() { document.getElementById('modalLembretes').classList.add('hidden'); }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            html.classList.toggle('dark');
+            localStorage.setItem('tarefaspri_theme', html.classList.contains('dark') ? 'dark' : 'light');
+            document.getElementById('theme-icon').className = html.classList.contains('dark') ? "fas fa-sun text-yellow-400" : "fas fa-moon text-slate-600";
+            if(chartPizza) chartPizza.update(); 
+        }
+
+        function aplicarTemaSalvo() {
+            if (localStorage.getItem('tarefaspri_theme') === 'dark') { document.documentElement.classList.add('dark'); document.getElementById('theme-icon').className = "fas fa-sun text-yellow-400"; }
+        }
+
+        // ==========================================
+        // BLOCO: RELATÓRIOS E GRÁFICOS
+        // ==========================================
+        
+        const centerTextPlugin = {
+            id: 'centerText',
+            beforeDraw: function(chart) {
+                if (chart.config.type !== 'doughnut') return;
+                var w = chart.width, h = chart.height, ctx = chart.ctx;
+                ctx.restore();
+                ctx.font = "bold " + (h / 80).toFixed(2) + "em sans-serif";
+                ctx.textBaseline = "middle";
+                ctx.fillStyle = document.documentElement.classList.contains('dark') ? '#FFFFFF' : '#1E293B';
+                var text = chart.config.options.plugins.centerText.text || '0%', textX = Math.round((w - ctx.measureText(text).width) / 2), textY = h / 2;
+                ctx.fillText(text, textX, textY); ctx.save();
+            }
+        };
+        Chart.register(centerTextPlugin);
+
+        function inicializarGraficoPizza() {
+            const ctx = document.getElementById('graficoPizza').getContext('2d');
+            chartPizza = new Chart(ctx, {
+                type: 'doughnut',
+                data: { labels: ['Feitas', 'Pendentes', 'Não Feitas'], datasets: [{ data: [0, 1, 0], backgroundColor: ['#10B981', '#E2E8F0', '#EF4444'], borderWidth: 0 }] },
+                options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { display: false }, tooltip: { enabled: true }, centerText: { text: '0%' } } }
+            });
+        }
+        function atualizarGraficoPizza() {
+            if(!chartPizza) return;
+            const tHoje = tarefas.filter(t => isTarefaDeHoje(t));
+            const total = tHoje.length; const conc = tHoje.filter(t => t.status === 'Concluída').length;
+            const pend = tHoje.filter(t => t.status === 'Pendente').length; const nFei = tHoje.filter(t => t.status === 'Não Feita').length;
+            const cP = document.documentElement.classList.contains('dark') ? '#334155' : '#E2E8F0';
+            
+            chartPizza.data.datasets[0].data = total === 0 ? [0, 1, 0] : [conc, pend, nFei];
+            chartPizza.data.datasets[0].backgroundColor = total === 0 ? [cP, cP, cP] : ['#10B981', cP, '#EF4444'];
+            chartPizza.options.plugins.centerText.text = total === 0 ? '0%' : Math.round((conc / total) * 100) + '%';
+            chartPizza.update();
+        }
+
+        function abrirModalRelatorio() { document.getElementById('modalRelatorio').classList.remove('hidden'); gerarDadosRelatorio(); }
+        function fecharModalRelatorio() { document.getElementById('modalRelatorio').classList.add('hidden'); }
+
+        function gerarDadosRelatorio() {
+            const total = tarefas.length;
+            const conc = tarefas.filter(t => t.status === 'Concluída').length;
+            const nFei = tarefas.filter(t => t.status === 'Não Feita').length;
+            
+            document.getElementById('repTotal').innerText = total;
+            document.getElementById('repConcluidas').innerText = conc;
+            document.getElementById('repNaoFeitas').innerText = nFei;
+            document.getElementById('repTaxa').innerText = total === 0 ? '0%' : Math.round((conc / total) * 100) + '%';
+
+            const containerCat = document.getElementById('containerCategoriasUnico');
+            containerCat.innerHTML = '';
+            const catLista = ["Sáude", "Pessoal", "Espiritualidade", "Casa", "Família", "Pripel", "Outros"];
+            
+            const totalConcluidasGeral = tarefas.filter(t => t.status === 'Concluída').length;
+            let temCategoria = false;
+
+            catLista.forEach(cat => {
+                const tCat = tarefas.filter(t => (t.categoria || 'Outros') === cat);
+                const tCatTotal = tCat.length;
+                if(tCatTotal === 0) return; 
+                
+                temCategoria = true;
+                const cConc = tCat.filter(t => t.status === 'Concluída').length;
+                
+                const percConclusao = Math.round((cConc / tCatTotal) * 100);
+                const percDedicacao = totalConcluidasGeral === 0 ? 0 : Math.round((cConc / totalConcluidasGeral) * 100);
+
+                containerCat.innerHTML += `
+                    <div class="w-full">
+                        <div class="flex justify-between items-end mb-2">
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold text-slate-700 dark:text-slate-200 text-sm md:text-base">${cat}</span>
+                                <span class="text-[10px] md:text-xs font-medium text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">${cConc}/${tCatTotal} concluídas</span>
+                            </div>
+                            <div class="text-right flex flex-col items-end">
+                                <span class="text-xs font-black text-primary">${percDedicacao}% de Dedicação</span>
+                                <span class="text-[10px] text-slate-500 mt-0.5">Conclusão da categoria: ${percConclusao}%</span>
+                            </div>
+                        </div>
+                        <div class="w-full bg-slate-100 dark:bg-slate-700 h-3 rounded-full overflow-hidden">
+                            <div class="bg-primary h-full transition-all duration-1000" style="width: ${percDedicacao}%"></div>
+                        </div>
+                    </div>`;
+            });
+
+            if (!temCategoria) {
+                containerCat.innerHTML = `<p class="text-sm text-slate-500 text-center py-4">Nenhuma tarefa registrada para gerar o desempenho.</p>`;
+            }
+        }
+
+        // ==========================================
+        // BLOCO: HISTÓRICO GERAL DE TAREFAS
+        // ==========================================
+
+        function abrirModalHistorico() { document.getElementById('filtroDataHist').value = new Date().toISOString().split('T')[0]; document.getElementById('modalHistorico').classList.remove('hidden'); renderizarHistorico(); }
+        function fecharModalHistorico() { document.getElementById('modalHistorico').classList.add('hidden'); }
+        
+        function renderizarHistorico() {
+            const lista = document.getElementById('listaHistoricoTotal'); lista.innerHTML = '';
+            const inputDateRaw = document.getElementById('filtroDataHist').value;
+            let dFiltro = ''; if(inputDateRaw) { const [y, m, d] = inputDateRaw.split('-'); dFiltro = `${d}/${m}/${y}`; }
+            const sFiltro = document.getElementById('filtroStatusHist').value;
+            const tFiltradas = tarefas.filter(t => (dFiltro === '' || t.data === dFiltro) && (sFiltro === 'Todos' || t.status === sFiltro)).sort((a, b) => a.data === b.data ? a.hora.localeCompare(b.hora) : b.data.localeCompare(a.data));
+            if(tFiltradas.length === 0) { lista.innerHTML = `<p class="text-center text-slate-500 py-6 text-sm">Nenhuma tarefa encontrada neste filtro.</p>`; return; }
+
+            tFiltradas.forEach(t => {
+                let badge = t.status === 'Concluída' ? '<span class="bg-success text-white px-2 py-0.5 rounded text-[10px]"><i class="fas fa-check mr-1"></i>Concluída</span>' : t.status === 'Não Feita' ? '<span class="bg-danger text-white px-2 py-0.5 rounded text-[10px]">Não Feita</span>' : '<span class="bg-slate-300 text-slate-800 px-2 py-0.5 rounded text-[10px]">Pendente</span>';
+                let badgeRec = t.recorrente ? `<i class="fas fa-sync-alt text-slate-400 ml-1" title="Recorrente"></i>` : '';
+                
+                // Aplicando a sanitização no histórico também!
+                const nomeSeguro = escapeHTML(t.nome);
+                const justificativaSegura = escapeHTML(t.justificativa);
+
+                lista.innerHTML += `
+                    <div class="bg-white dark:bg-darkcard p-3 rounded-xl border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+                        <div class="min-w-0">
+                            <p class="font-bold text-sm md:text-base text-slate-800 dark:text-white truncate">${nomeSeguro} ${badgeRec}</p>
+                            <p class="text-[10px] md:text-xs text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
+                                <span><i class="far fa-calendar mr-1"></i>${t.data} às ${t.hora}</span> 
+                                <span class="uppercase font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">${t.categoria || 'Outros'}</span>
+                            </p>
+                            ${t.justificativa ? `<p class="text-xs text-danger mt-1.5 bg-red-50 dark:bg-red-900/20 p-1.5 rounded border border-red-100 dark:border-red-800 break-words"><i class="fas fa-comment-dots mr-1"></i> ${justificativaSegura}</p>` : ''}
+                        </div>
+                        <div class="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 shrink-0">
+                            <div class="flex sm:flex-col items-center sm:items-end gap-1.5">${badge}</div>
+                            <button onclick="excluirTarefa('${t.id}')" class="bg-slate-100 dark:bg-slate-800 p-1.5 rounded text-slate-400 hover:text-danger hover:bg-red-50 transition" title="Excluir Histórico"><i class="fas fa-trash text-xs"></i></button>
+                        </div>
+                    </div>`;
+            });
+        }
+    </script>
+</body>
+</html>
