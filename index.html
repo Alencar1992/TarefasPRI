@@ -302,23 +302,22 @@
             }
         }
 
-        // Função que ENVIA os dados para o Google Sheets usando o comando Fetch (POST)
+       // Função que ENVIA os dados para o Google Sheets usando o comando Fetch (POST)
 function salvarNoStorage() {
     localStorage.setItem('tarefaspri_dados', JSON.stringify(tarefas));
     const icon = document.getElementById('sync-icon');
     if(icon) icon.classList.remove('hidden');
     
-    if (API_URL !== "https://script.google.com/macros/s/AKfycbzpYzG0rHm_Sz2CHAC76ySn2Y7pNPSOJ7Z0ETogoQortLQEiUeloP6inwcqncTgoztf/exec") {
-        // A "Ligação de Telefone" que envia as tarefas no corpo (body) da mensagem
-        fetch(API_URL, {
-            method: 'POST',
-            body: JSON.stringify(tarefas),
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' } // text/plain evita bloqueios de segurança (CORS) do Google
-        })
-        .then(() => { if(icon) icon.classList.add('hidden'); })
-        .catch(() => { if(icon) icon.classList.add('hidden'); });
-    }
+    // A "Ligação de Telefone" que envia as tarefas no corpo (body) da mensagem
+    fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify(tarefas),
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' } 
+    })
+    .then(() => { if(icon) icon.classList.add('hidden'); })
+    .catch(() => { if(icon) icon.classList.add('hidden'); });
 }
+
 
         // ==========================================
         // RESTANTE DAS FUNÇÕES CRUD E UI OMITIDAS 
