@@ -172,7 +172,7 @@
         // ==========================================
         
         // CUIDADO: COLE A URL DO SEU GOOGLE APPS SCRIPT DENTRO DAS ASPAS ABAIXO
-        const API_URL = "https://script.google.com/macros/s/AKfycbzpYzG0rHm_Sz2CHAC76ySn2Y7pNPSOJ7Z0ETogoQortLQEiUeloP6inwcqncTgoztf/exec"; 
+        const API_URL = "https://script.google.com/macros/s/AKfycbzWHnzAJb55J6d_lNMCnoxqwwc5wLWU-gBkSxQsxyjKqBdylci58MvYKmm8qm3RoRiD/exec"; 
 
         // ==========================================
         // BLOCO: VARIÁVEIS GLOBAIS E INICIALIZAÇÃO
@@ -302,23 +302,29 @@
             }
         }
 
-     // Função que ENVIA os dados para o Google Sheets usando o comando Fetch (POST)
+  // Função que ENVIA os dados para o Google Sheets usando o comando Fetch (POST)
 function salvarNoStorage() {
     localStorage.setItem('tarefaspri_dados', JSON.stringify(tarefas));
     const icon = document.getElementById('sync-icon');
     if(icon) icon.classList.remove('hidden');
     
-    // A "Ligação de Telefone" com blindagem no-cors para evitar bloqueios do navegador
+    // O comando "redirect: 'follow'" é a chave mágica para o Google Apps Script aceitar o pacote
     fetch(API_URL, {
+        redirect: 'follow',
         method: 'POST',
-        mode: 'no-cors', // <-- ESSA É A CHAVE MESTRA!
         body: JSON.stringify(tarefas),
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' } 
+        headers: {
+            "Content-Type": "text/plain;charset=utf-8"
+        }
     })
-    .then(() => { if(icon) icon.classList.add('hidden'); })
-    .catch((erro) => { 
-        if(icon) icon.classList.add('hidden'); 
-        console.error("Erro ao enviar para o Google:", erro);
+    .then(response => response.text())
+    .then(resultado => {
+        console.log("Resposta do Google:", resultado); // Isso ajuda a debugar se der erro
+        if(icon) icon.classList.add('hidden');
+    })
+    .catch(erro => {
+        console.error("Falha ao comunicar com o Google:", erro);
+        if(icon) icon.classList.add('hidden');
     });
 }
 
