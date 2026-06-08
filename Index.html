@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TarefasPRI - Premium</title>
+    <title>TarefasPRI</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -38,7 +38,7 @@
 
     <div id="telaCarregamento" class="fixed inset-0 bg-gray-50 dark:bg-darkbg z-[1000] flex flex-col items-center justify-center transition-opacity duration-500">
         <i class="fas fa-circle-notch fa-spin text-5xl text-primary mb-4"></i>
-        <p class="text-slate-500 font-bold text-sm md:text-base tracking-wide">Carregando seu espaço...</p>
+        <p class="text-slate-500 font-bold text-sm md:text-base tracking-wide">Carregando suas Tarefas...</p>
     </div>
 
     <div id="toast-container" class="fixed top-5 left-1/2 transform -translate-x-1/2 z-[100] flex flex-col gap-2 pointer-events-none"></div>
@@ -52,7 +52,7 @@
                         TarefasPRI
                         <i id="sync-icon" class="fas fa-sync-alt text-xs text-slate-400 animate-spin" title="Sincronizando..."></i>
                     </h1>
-                    <p class="text-[10px] md:text-xs text-slate-500 font-medium">Gestão Premium</p>
+                    <p class="text-[10px] md:text-xs text-slate-500 font-medium">Gestão</p>
                 </div>
             </div>
             <div class="flex items-center gap-2 md:gap-3 overflow-x-auto pb-1 md:pb-0">
@@ -72,7 +72,7 @@
                     <i id="theme-icon" class="fas fa-moon text-slate-600 dark:text-yellow-400"></i>
                 </button>
                 <button onclick="abrirModalRelatorio()" class="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 px-3 py-2 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition font-semibold text-xs md:text-sm whitespace-nowrap">
-                    <i class="fas fa-chart-pie text-primary"></i> <span class="hidden sm:inline">Analytics</span>
+                    <i class="fas fa-chart-pie text-primary"></i> <span class="hidden sm:inline">Analise</span>
                 </button>
                 <button onclick="abrirModalHistorico()" class="flex items-center gap-2 bg-primary text-white px-3 py-2 rounded-xl shadow-md hover:bg-indigo-700 transition font-semibold text-xs md:text-sm whitespace-nowrap">
                     <i class="fas fa-calendar-alt"></i> <span class="hidden sm:inline">Histórico</span>
@@ -149,7 +149,7 @@
     </main>
 
     <footer class="text-center py-6 text-slate-400 text-xs mt-10 border-t border-slate-200 dark:border-slate-800 font-medium">
-        Since @2026 - Versão 1.2 (Segurança Aprimorada) - Build 26.06.26
+        Since @2026 - Versão 1.2 (Segurança Aprimorada) - Build 08.06.26
     </footer>
 
     <button id="btnSairFoco" onclick="toggleModoFoco()" class="hidden fixed bottom-6 right-6 bg-primary text-white px-6 py-3 rounded-full shadow-2xl font-bold z-50 hover:bg-indigo-700 transition flex items-center gap-2">
@@ -194,6 +194,7 @@
                 <li>[SEG] Sanitização XSS implementada nos campos de texto.</li>
                 <li>[UI] Adicionado Overlay de carregamento elegante na abertura.</li>
                 <li>[FIX] Corrigida a lógica persistente das datas.</li>
+                <li>[GMUD] Migração para Github 08.06.2026.</li>
             </ul>
         </div>
     </div>
