@@ -245,26 +245,60 @@
         let toastLoadingRef = null;
         
         // ==========================================
-        // COMUNICAÇÃO COM O BACKEND (API FETCH)
+        // COMUNICAÇÃO COM O BACKEND (API FETCH - BYPASS CORS)
         // ==========================================
         
-        // Função que PUXA os dados do Google Sheets usando o comando Fetch (GET)
+        // CUIDADO: COLE A NOVA URL DO SEU GOOGLE APPS SCRIPT AQUI
+        const API_URL = "https://script.google.com/macros/s/AKfycbzWHnzAJb55J6d_lNMCnoxqwwc5wLWU-gBkSxQsxyjKqBdylci58MvYKmm8qm3RoRiD/exec"; 
+
+        // PUXA OS DADOS DA NUVEM (Via GET)
         function sincronizarComNuvem(isManual = false) {
             if (isSyncing) return;
             isSyncing = true;
-            
             const iconHeader = document.getElementById('sync-icon');
             const iconRefresh = document.getElementById('refresh-icon');
             if (iconHeader) iconHeader.classList.remove('hidden');
             if (iconRefresh && isManual) iconRefresh.classList.add('fa-spin');
             if (isManual) toastLoadingRef = showToast('Atualizando dados da nuvem...', 'loading');
 
-            // Proteção se esquecer de colocar a URL
-            if (API_URL === "COLE_AQUI_A_URL_DO_SEU_WEB_APP_APPS_SCRIPT") {
-                finalizarSincronizacao(false, isManual, "[]");
-                alert("Atenção Dev: Você precisa colar a URL do Apps Script na variável API_URL no topo do script HTML!");
-                return;
+            if (API_URL === "https://script.google.com/macros/s/AKfycbzWHnzAJb55J6d_lNMCnoxqwwc5wLWU-gBkSxQsxyjKqBdylci58MvYKmm8qm3RoRiD/exec") return finalizarSincronizacao(false, isManual, "[]");
+
+            // GET para puxar dados
+            fetch(API_URL + "?action=load")
+                .then(response => response.text())
+                .then(dados => finalizarSincronizacao(true, isManual, dados))
+                .catch(erro => finalizarSincronizacao(false, isManual, erro));
+        }
+
+        function finalizarSincronizacao(sucesso, isManual, resposta) {
+           // ... (O conteúdo desta função continua idêntico ao seu anterior) ...
+        }
+
+        // ENVIA OS DADOS PARA A NUVEM (Via GET Url-Encoded)
+        function salvarNoStorage() {
+            localStorage.setItem('tarefaspri_dados', JSON.stringify(tarefas));
+            const icon = document.getElementById('sync-icon');
+            if(icon) icon.classList.remove('hidden');
+            
+            if (API_URL !== "https://script.google.com/macros/s/AKfycbzWHnzAJb55J6d_lNMCnoxqwwc5wLWU-gBkSxQsxyjKqBdylci58MvYKmm8qm3RoRiD/exec") {
+                // Pegamos todos os dados, compactamos e transformamos numa string segura para URL
+                const payloadCodificado = encodeURIComponent(JSON.stringify(tarefas));
+                
+                // Anexamos os dados no final do link. Adeus problema de CORS no POST!
+                const urlDeSalvamento = `${API_URL}?action=save&payload=${payloadCodificado}`;
+
+                fetch(urlDeSalvamento)
+                    .then(response => response.json())
+                    .then(resultado => {
+                        console.log("Sucesso ao salvar no Google:", resultado);
+                        if(icon) icon.classList.add('hidden');
+                    })
+                    .catch(erro => {
+                        console.error("Falha ao salvar:", erro);
+                        if(icon) icon.classList.add('hidden');
+                    });
             }
+        }
 
             // A famosa "Ligação de Telefone" via Fetch para pedir os dados (action=load)
             fetch(API_URL + "?action=load")
