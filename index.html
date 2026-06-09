@@ -247,13 +247,39 @@
             const iconRefresh = document.getElementById('refresh-icon');
             if (iconHeader) iconHeader.classList.add('hidden');
             if (iconRefresh && isManual) iconRefresh.classList.remove('fa-spin');
-            if (toastLoadingRef) { toastLoadingRef.classList.add('opacity-0', '-translate-y-5'); setTimeout(() => toastLoadingRef.remove(), 300); toastLoadingRef = null; }
+            
+            // CORREÇÃO 1: Guardamos o toast numa variável segura antes de anular a global
+            if (toastLoadingRef) { 
+                const toastAtual = toastLoadingRef;
+                toastAtual.classList.add('opacity-0', '-translate-y-5'); 
+                setTimeout(() => toastAtual.remove(), 300); 
+                toastLoadingRef = null; 
+            }
 
             const telaCarregamento = document.getElementById('telaCarregamento');
             if (telaCarregamento) {
                 telaCarregamento.classList.add('opacity-0');
                 setTimeout(() => telaCarregamento.classList.add('hidden'), 500);
             }
+
+            if (sucesso) {
+                try {
+                    const dadosPlanilha = JSON.parse(resposta);
+                    if (!dadosPlanilha.erro && Array.isArray(dadosPlanilha)) {
+                        // CORREÇÃO 2: Aceita a atualização mesmo se a planilha estiver vazia (apagada)
+                        tarefas = dadosPlanilha;
+                        localStorage.setItem('tarefaspri_dados', JSON.stringify(tarefas));
+                        renderizarTarefas(); 
+                        atualizarGraficoPizza();
+                        if (!document.getElementById('modalRelatorio').classList.contains('hidden')) gerarDadosRelatorio();
+                        if (!document.getElementById('modalHistorico').classList.contains('hidden')) renderizarHistorico();
+                        if (isManual) showToast('Aplicativo atualizado!', 'success');
+                    }
+                } catch(e) {
+                    console.error("Erro de leitura:", e);
+                }
+            }
+        }
 
             if (sucesso) {
                 try {
