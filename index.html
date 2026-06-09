@@ -279,28 +279,26 @@
             }
         }
 
-        // Função que SALVA via BYPASS de CORS (Manda tudo na URL via GET)
-        function salvarNoStorage() {
-            localStorage.setItem('tarefaspri_dados', JSON.stringify(tarefas));
-            const icon = document.getElementById('sync-icon');
-            if(icon) icon.classList.remove('hidden');
-            
-            // Empacotamos as tarefas e colamos no final da URL
-            const payloadCodificado = encodeURIComponent(JSON.stringify(tarefas));
-            const urlDeSalvamento = `${API_URL}?action=save&payload=${payloadCodificado}`;
+       function salvarNoStorage() {
+    localStorage.setItem('tarefaspri_dados', JSON.stringify(tarefas));
+    const icon = document.getElementById('sync-icon');
+    if(icon) icon.classList.remove('hidden');
 
-            // Um simples GET cego, sem bloqueios de CORS!
-            fetch(urlDeSalvamento)
-                .then(response => response.json())
-                .then(resultado => {
-                    console.log("Sucesso ao salvar no Google:", resultado);
-                    if(icon) icon.classList.add('hidden');
-                })
-                .catch(erro => {
-                    console.error("Falha ao salvar:", erro);
-                    if(icon) icon.classList.add('hidden');
-                });
-        }
+    // Enviando via POST (Robusto e sem erro 400)
+    fetch(API_URL, {
+        method: 'POST',
+        mode: 'no-cors', // Importante para evitar bloqueios do Google
+        body: JSON.stringify(tarefas)
+    })
+    .then(() => {
+        console.log("Sucesso ao salvar no Google via POST");
+        if(icon) icon.classList.add('hidden');
+    })
+    .catch(erro => {
+        console.error("Falha ao salvar:", erro);
+        if(icon) icon.classList.add('hidden');
+    });
+}
 
         // ==========================================
         // RESTANTE DAS FUNÇÕES CRUD E UI
