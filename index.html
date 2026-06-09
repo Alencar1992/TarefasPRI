@@ -38,7 +38,7 @@
 
     <div id="telaCarregamento" class="fixed inset-0 bg-gray-50 dark:bg-darkbg z-[1000] flex flex-col items-center justify-center transition-opacity duration-500">
         <i class="fas fa-circle-notch fa-spin text-5xl text-primary mb-4"></i>
-        <p class="text-slate-500 font-bold text-sm md:text-base tracking-wide">Carregando as Tarefas agora vai...</p>
+        <p class="text-slate-500 font-bold text-sm md:text-base tracking-wide">Carregando as Tarefas...</p>
     </div>
 
     <div id="toast-container" class="fixed top-5 left-1/2 transform -translate-x-1/2 z-[100] flex flex-col gap-2 pointer-events-none"></div>
@@ -132,7 +132,7 @@
     </main>
 
     <footer class="text-center py-6 text-slate-400 text-xs mt-10 border-t border-slate-200 dark:border-slate-800 font-medium">
-        Since @2026 - Versão 1.3.2 (GitHub API Sync Final) - Build 09.06.26
+        Since @2026 - Versão 1.3.3 (Syntax Fix Final) - Build 09.06.26
     </footer>
 
     <button id="btnSairFoco" onclick="toggleModoFoco()" class="hidden fixed bottom-6 right-6 bg-primary text-white px-6 py-3 rounded-full shadow-2xl font-bold z-50 hover:bg-indigo-700 transition flex items-center gap-2"><i class="fas fa-compress"></i> Sair do Foco</button>
@@ -141,7 +141,7 @@
 
     <div id="modalNaoFeita" class="fixed inset-0 bg-slate-900 bg-opacity-70 backdrop-blur-sm flex justify-center items-center hidden z-50 p-4"><div class="bg-white dark:bg-darkcard rounded-2xl w-full max-w-sm md:max-w-md p-5 md:p-6 relative modal-enter shadow-2xl"><h3 class="text-lg md:text-xl font-bold text-danger mb-2"><i class="fas fa-times-circle mr-2"></i>Tarefa Não Realizada</h3><p class="text-xs md:text-sm text-slate-500 mb-4 truncate" id="naoFeitaTaskName"></p><label class="block text-xs md:text-sm font-semibold mb-1">Justificativa:</label><textarea id="justificativaInput" rows="3" class="w-full p-2 border border-slate-300 rounded-xl bg-slate-50 dark:bg-slate-900 dark:border-slate-700 focus:ring-2 focus:ring-danger outline-none mb-4 resize-none text-sm"></textarea><div class="bg-slate-50 dark:bg-slate-800 p-3 md:p-4 rounded-xl mb-5"><p class="text-xs md:text-sm font-semibold mb-2">Reagendar para amanhã?</p><div class="flex gap-4 text-sm"><label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="reagendar" value="sim" checked class="accent-primary"> Sim</label><label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="reagendar" value="nao" class="accent-primary"> Não</label></div></div><div class="flex gap-2 md:gap-3"><button onclick="fecharModalNaoFeita()" class="flex-1 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 py-2 rounded-xl text-sm font-semibold hover:bg-slate-300 transition">Cancelar</button><button onclick="confirmarNaoFeita()" class="flex-1 bg-danger text-white py-2 rounded-xl text-sm font-semibold shadow hover:bg-red-600 transition">Confirmar</button></div><input type="hidden" id="naoFeitaTaskId"></div></div>
     
-    <div id="modalLembretes" class="fixed inset-0 bg-slate-900 bg-opacity-70 flex items-center justify-center hidden z-50 p-4 backdrop-blur-sm modal-enter"><div class="bg-slate-100 dark:bg-slate-800 p-6 rounded-2xl shadow-xl w-full max-w-md relative border border-slate-200 dark:border-slate-700"><button onclick="fecharLembretes()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-800 dark:hover:text-white text-xl"><i class="fas fa-times"></i></button><h2 class="text-lg font-bold mb-4 flex items-center gap-2 text-primary"><i class="fas fa-code"></i> Changelog Dev (v1.3.2)</h2><ul class="list-disc ml-5 space-y-2 text-sm font-medium text-slate-700 dark:text-slate-300"><li>[API] Otimização GET-Bypass operando limpa.</li></ul></div></div>
+    <div id="modalLembretes" class="fixed inset-0 bg-slate-900 bg-opacity-70 flex items-center justify-center hidden z-50 p-4 backdrop-blur-sm modal-enter"><div class="bg-slate-100 dark:bg-slate-800 p-6 rounded-2xl shadow-xl w-full max-w-md relative border border-slate-200 dark:border-slate-700"><button onclick="fecharLembretes()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-800 dark:hover:text-white text-xl"><i class="fas fa-times"></i></button><h2 class="text-lg font-bold mb-4 flex items-center gap-2 text-primary"><i class="fas fa-code"></i> Changelog Dev (v1.3.3)</h2><ul class="list-disc ml-5 space-y-2 text-sm font-medium text-slate-700 dark:text-slate-300"><li>[FIX] Syntax Error (Chaves duplas) eliminado.</li></ul></div></div>
 
     <div id="containerAnimacao" class="hidden"></div>
     
@@ -153,7 +153,7 @@
         // ==========================================
         // CONFIGURAÇÃO DA API (A ÚNICA!)
         // ==========================================
-        const API_URL = "https://script.google.com/macros/s/AKfycbzwgBVUQQ2EFBs_ez9bNx4EHDw7M8CouE87udKDa2uW1hhicjPTI8Yb2BHChS373Pqq/exec"; 
+        const API_URL = "https://script.google.com/macros/s/AKfycbzWHnzAJb55J6d_lNMCnoxqwwc5wLWU-gBkSxQsxyjKqBdylci58MvYKmm8qm3RoRiD/exec"; 
 
         let tarefas = JSON.parse(localStorage.getItem('tarefaspri_dados')) || [];
         let chartPizza, chartGeralPizza;
@@ -248,7 +248,6 @@
             if (iconHeader) iconHeader.classList.add('hidden');
             if (iconRefresh && isManual) iconRefresh.classList.remove('fa-spin');
             
-            // CORREÇÃO 1: Guardamos o toast numa variável segura antes de anular a global
             if (toastLoadingRef) { 
                 const toastAtual = toastLoadingRef;
                 toastAtual.classList.add('opacity-0', '-translate-y-5'); 
@@ -266,7 +265,6 @@
                 try {
                     const dadosPlanilha = JSON.parse(resposta);
                     if (!dadosPlanilha.erro && Array.isArray(dadosPlanilha)) {
-                        // CORREÇÃO 2: Aceita a atualização mesmo se a planilha estiver vazia (apagada)
                         tarefas = dadosPlanilha;
                         localStorage.setItem('tarefaspri_dados', JSON.stringify(tarefas));
                         renderizarTarefas(); 
@@ -278,21 +276,6 @@
                 } catch(e) {
                     console.error("Erro de leitura:", e);
                 }
-            }
-        }
-
-            if (sucesso) {
-                try {
-                    const dadosPlanilha = JSON.parse(resposta);
-                    if (!dadosPlanilha.erro && Array.isArray(dadosPlanilha)) {
-                        if(dadosPlanilha.length > 0) tarefas = dadosPlanilha;
-                        localStorage.setItem('tarefaspri_dados', JSON.stringify(tarefas));
-                        renderizarTarefas(); atualizarGraficoPizza();
-                        if (!document.getElementById('modalRelatorio').classList.contains('hidden')) gerarDadosRelatorio();
-                        if (!document.getElementById('modalHistorico').classList.contains('hidden')) renderizarHistorico();
-                        if (isManual) showToast('Aplicativo atualizado!', 'success');
-                    }
-                } catch(e) {}
             }
         }
 
@@ -320,7 +303,7 @@
         }
 
         // ==========================================
-        // RESTANTE DAS FUNÇÕES CRUD E UI (Inalterado)
+        // RESTANTE DAS FUNÇÕES CRUD E UI
         // ==========================================
 
         function salvarTarefa(event) {
